@@ -25,8 +25,6 @@ int main(void)
     RenderTexture2D target = LoadRenderTexture(gameScreenWidth, gameScreenHeight);
     SetTextureFilter(target.texture, TEXTURE_FILTER_BILINEAR);  // Texture scale filter to use
 
-    Color colors[10] = { 0 };
-    for (int i = 0; i < 10; i++) colors[i] = (Color){ GetRandomValue(100, 250), GetRandomValue(50, 150), GetRandomValue(10, 100), 255 };
 
     SetTargetFPS(60);                   // Set our game to run at 60 frames-per-second
     //--------------------------------------------------------------------------------------
@@ -39,11 +37,6 @@ int main(void)
         // Compute required framebuffer scaling
         float scale = MIN((float)GetScreenWidth()/gameScreenWidth, (float)GetScreenHeight()/gameScreenHeight);
 
-        if (IsKeyPressed(KEY_SPACE))
-        {
-            // Recalculate random colors for the bars
-            for (int i = 0; i < 10; i++) colors[i] = (Color){ GetRandomValue(100, 250), GetRandomValue(50, 150), GetRandomValue(10, 100), 255 };
-        }
 
         // Update virtual mouse (clamped mouse value behind game screen)
         Vector2 mouse = GetMousePosition();
@@ -63,11 +56,7 @@ int main(void)
         BeginTextureMode(target);
         ClearBackground(RAYWHITE);  // Clear render texture background color
 
-        for (int i = 0; i < 10; i++) DrawRectangle(0, (gameScreenHeight/10)*i, gameScreenWidth, gameScreenHeight/10, colors[i]);
 
-        DrawText("If executed inside a window,\nyou can resize the window,\nand see the screen scaling!", 10, 25, 20, WHITE);
-        DrawText(TextFormat("Default Mouse: [%i , %i]", (int)mouse.x, (int)mouse.y), 350, 25, 20, GREEN);
-        DrawText(TextFormat("Virtual Mouse: [%i , %i]", (int)virtualMouse.x, (int)virtualMouse.y), 350, 55, 20, YELLOW);
         EndTextureMode();
 
         BeginDrawing();
