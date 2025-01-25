@@ -3,8 +3,16 @@
 #include "objects.hpp"
 
 int main() {
-    // Initialize the window with the desired size
-    InitWindow(1600, 900, "Raylib Test");
+    // Get the monitor's resolution
+    int screen_width = GetMonitorWidth(0);
+    int screen_height = GetMonitorHeight(0);
+
+    // Initialize the window with borderless mode at native resolution
+    SetConfigFlags(FLAG_WINDOW_UNDECORATED);  // Remove borders and title bar
+    InitWindow(screen_width, screen_height, "Raylib Test");
+
+    // Position the window to cover the whole screen
+    SetWindowPosition(0, 0);
 
     // List of Base objects
     std::list<Base> test;
