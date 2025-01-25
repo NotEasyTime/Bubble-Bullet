@@ -15,6 +15,8 @@ int main(void)
     const int windowWidth = 800;
     const int windowHeight = 450;
 
+    bool GameStart = false;
+
     // Enable config flags for resizable window and vertical synchro
     SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_VSYNC_HINT);
     InitWindow(windowWidth, windowHeight, "raylib [core] example - window scale letterbox");
@@ -83,113 +85,118 @@ int main(void)
         camera.target.x = C.domain.x;
         camera.target.y = C.domain.y;
 
-        if (IsMouseButtonPressed(0)) {
-            // Convert screen mouse position to world position
-            Vector2 worldMouse = GetScreenToWorld2D(virtualMouse, camera);
+        if(GameStart){
+            if (IsMouseButtonPressed(0)) {
+                // Convert screen mouse position to world position
+                Vector2 worldMouse = GetScreenToWorld2D(virtualMouse, camera);
 
-            // Calculate direction from player to mouse
-            Vector2 direction = Vector2Subtract(worldMouse, (Vector2){ C.domain.x, C.domain.y });
-            direction = Vector2Normalize(direction);
+                // Calculate direction from player to mouse
+                Vector2 direction = Vector2Subtract(worldMouse, (Vector2){ C.domain.x, C.domain.y });
+                direction = Vector2Normalize(direction);
 
-            // Add the bullet to the list
-            bullets.push_back(Bullet(C.domain.x, C.domain.y, 10, direction, 5));
-        }
-
-
-
-
-        //UPDATE ENEMY
-        for (std::list<Enemy>::iterator it = enemies.begin(); it != enemies.end(); ++it) {
-            // Assign a random destination if not traveling
-            if (!it->traveling) {
-                it->dest.x = it->domain.x + (GetRandomValue(0, 100) - 50);
-                it->dest.y = it->domain.y + (GetRandomValue(0, 100) - 50);
-                it->traveling = true;
+                // Add the bullet to the list
+                bullets.push_back(Bullet(C.domain.x, C.domain.y, 10, direction, 5));
             }
 
-            // Move toward destination
-            if (it->traveling) {
-                if (it->domain.x < it->dest.x) {
-                    it->move(1, 0);
-                    if (it->domain.x > it->dest.x) it->domain.x = it->dest.x; // Prevent overshoot
-                } else if (it->domain.x > it->dest.x) {
-                    it->move(-1, 0);
-                    if (it->domain.x < it->dest.x) it->domain.x = it->dest.x; // Prevent overshoot
+
+
+
+            //UPDATE ENEMY
+            for (std::list<Enemy>::iterator it = enemies.begin(); it != enemies.end(); ++it) {
+                // Assign a random destination if not traveling
+                if (!it->traveling) {
+                    it->dest.x = it->domain.x + (GetRandomValue(0, 100) - 50);
+                    it->dest.y = it->domain.y + (GetRandomValue(0, 100) - 50);
+                    it->traveling = true;
                 }
 
-                if (it->domain.y < it->dest.y) {
-                    it->move(0, 1);
-                    if (it->domain.y > it->dest.y) it->domain.y = it->dest.y; // Prevent overshoot
-                } else if (it->domain.y > it->dest.y) {
-                    it->move(0, -1);
-                    if (it->domain.y < it->dest.y) it->domain.y = it->dest.y; // Prevent overshoot
+                // Move toward destination
+                if (it->traveling) {
+                    if (it->domain.x < it->dest.x) {
+                        it->move(1, 0);
+                        if (it->domain.x > it->dest.x) it->domain.x = it->dest.x; // Prevent overshoot
+                    } else if (it->domain.x > it->dest.x) {
+                        it->move(-1, 0);
+                        if (it->domain.x < it->dest.x) it->domain.x = it->dest.x; // Prevent overshoot
+                    }
+
+                    if (it->domain.y < it->dest.y) {
+                        it->move(0, 1);
+                        if (it->domain.y > it->dest.y) it->domain.y = it->dest.y; // Prevent overshoot
+                    } else if (it->domain.y > it->dest.y) {
+                        it->move(0, -1);
+                        if (it->domain.y < it->dest.y) it->domain.y = it->dest.y; // Prevent overshoot
+                    }
+
+                    // Check if destination is reached
+                    if (it->domain.x == it->dest.x && it->domain.y == it->dest.y) {
+                        it->traveling = false;
+                    }
+
+                    int rand = GetRandomValue(0,100);
+                    if(rand < 2){
+                        //Vector2 worldMouse = GetScreenToWorld2D(Vector2{it->domain.x,it->domain.y}, camera);
+
+                        // Calculate direction from player to mouse
+                        Vector2 direction = Vector2Subtract((Vector2){ C.domain.x, C.domain.y},Vector2{it->domain.x,it->domain.y}  );
+                        direction = Vector2Normalize(direction);
+
+                        // Add the bullet to the list
+                        enemyBullets.push_back(Bullet(it->domain.x, it->domain.y, 10, direction, 5));
+                    }
+
                 }
 
-                // Check if destination is reached
-                if (it->domain.x == it->dest.x && it->domain.y == it->dest.y) {
-                    it->traveling = false;
+                bool enemyHit = false;
+                for (std::list<Bullet>::iterator jit = bullets.begin(); jit != bullets.end(); ++jit) {
+                    if(CheckCollisionCircleRec(Vector2{jit->x,jit->y}, jit->r, it->domain)){
+                        enemyHit = true;
+                        break; // No need to check further bullets for this enemy
+                    }
+
                 }
-
-                int rand = GetRandomValue(0,100);
-                if(rand < 5){
-                    //Vector2 worldMouse = GetScreenToWorld2D(Vector2{it->domain.x,it->domain.y}, camera);
-
-                    // Calculate direction from player to mouse
-                    Vector2 direction = Vector2Subtract((Vector2){ C.domain.x, C.domain.y},Vector2{it->domain.x,it->domain.y}  );
-                    direction = Vector2Normalize(direction);
-
-                    // Add the bullet to the list
-                    enemyBullets.push_back(Bullet(it->domain.x, it->domain.y, 10, direction, 5));
+                if (enemyHit) {
+                    it = enemies.erase(it);
                 }
-
             }
 
-            bool enemyHit = false;
             for (std::list<Bullet>::iterator jit = bullets.begin(); jit != bullets.end(); ++jit) {
-                if(CheckCollisionCircleRec(Vector2{jit->x,jit->y}, jit->r, it->domain)){
-                    enemyHit = true;
+                for(std::list<Wall>::iterator it = walls.begin(); it != walls.end(); ++it){
+                    if(CheckCollisionCircleRec(Vector2{jit->x,jit->y}, jit->r, it->domain)){
+                        jit = bullets.erase(jit);
+                    }
+                }
+
+            }
+
+
+            for (std::list<Bullet>::iterator it = enemyBullets.begin(); it != enemyBullets.end(); ++it) {
+                if(CheckCollisionCircleRec(Vector2{it->x,it->y}, it->r, C.domain)){
+                    --C.health;
                     break; // No need to check further bullets for this enemy
                 }
+                for (std::list<Wall>::iterator jit = walls.begin(); jit != walls.end(); ++jit) {
+                    if (CheckCollisionCircleRec(Vector2{it->x,it->y}, it->r, jit->domain)){
+                        it = enemyBullets.erase(it);
+                    }
 
-            }
-            if (enemyHit) {
-                it = enemies.erase(it);
-            }
-        }
-
-        for (std::list<Bullet>::iterator jit = bullets.begin(); jit != bullets.end(); ++jit) {
-            for(std::list<Wall>::iterator it = walls.begin(); it != walls.end(); ++it){
-                if(CheckCollisionCircleRec(Vector2{jit->x,jit->y}, jit->r, it->domain)){
-                    jit = bullets.erase(jit);
                 }
             }
 
-        }
-
-
-        for (std::list<Bullet>::iterator it = enemyBullets.begin(); it != enemyBullets.end(); ++it) {
-            if(CheckCollisionCircleRec(Vector2{it->x,it->y}, it->r, C.domain)){
-                --C.health;
-                break; // No need to check further bullets for this enemy
+            for (std::list<Bullet>::iterator it = bullets.begin(); it != bullets.end(); ++it) {
+                it->x += it->speed * it->vec.x;
+                it->y += it->speed * it->vec.y;
             }
-            for (std::list<Wall>::iterator jit = walls.begin(); jit != walls.end(); ++jit) {
-                if (CheckCollisionCircleRec(Vector2{it->x,it->y}, it->r, jit->domain)){
-                    it = enemyBullets.erase(it);
-                }
-
+            for (std::list<Bullet>::iterator it = enemyBullets.begin(); it != enemyBullets.end(); ++it) {
+                it->x += it->speed * it->vec.x;
+                it->y += it->speed * it->vec.y;
             }
+
         }
 
-        for (std::list<Bullet>::iterator it = bullets.begin(); it != bullets.end(); ++it) {
-            it->x += it->speed * it->vec.x;
-            it->y += it->speed * it->vec.y;
+        if(CheckCollisionRecs(Rectangle{100,100,150,75}, Rectangle{GetMouseX(),GetMouseY(), 10,10})){
+            GameStart = true;
         }
-        for (std::list<Bullet>::iterator it = enemyBullets.begin(); it != enemyBullets.end(); ++it) {
-            it->x += it->speed * it->vec.x;
-            it->y += it->speed * it->vec.y;
-        }
-
-
 
 
 
@@ -198,23 +205,30 @@ int main(void)
         ClearBackground(RAYWHITE);  // Clear render texture background color
 
         BeginMode2D(camera);
-        for (std::list<Enemy>::iterator it = enemies.begin(); it != enemies.end(); ++it) {
-            DrawRectangle(it->domain.x, it->domain.y, it->domain.width, it->domain.height, RED);
-        }
-        for (std::list<Bullet>::iterator it = bullets.begin(); it != bullets.end(); ++it) {
-            DrawCircle(it->x,it->y,it->r,BROWN);
-        }
-        for (std::list<Bullet>::iterator it = enemyBullets.begin(); it != enemyBullets.end(); ++it) {
-            DrawCircle(it->x,it->y,it->r,YELLOW);
-        }
-        for (std::list<Wall>::iterator it = walls.begin(); it != walls.end(); ++it) {
-            DrawRectangle(it->domain.x,it->domain.y,it->domain.width, it->domain.height, GREEN);
-        }
-        DrawRectangle(C.domain.x,C.domain.y,C.domain.width,C.domain.height,BLUE);
-        DrawRectangle(50,50,10,10,BLACK);
 
-        for(int i = 0; i < C.health; ++i) {
-            DrawCircle(15 + i * 25, 15, 10, RED);
+        if(GameStart){
+            for (std::list<Enemy>::iterator it = enemies.begin(); it != enemies.end(); ++it) {
+                DrawRectangle(it->domain.x, it->domain.y, it->domain.width, it->domain.height, RED);
+            }
+            for (std::list<Bullet>::iterator it = bullets.begin(); it != bullets.end(); ++it) {
+                DrawCircle(it->x,it->y,it->r,BROWN);
+            }
+            for (std::list<Bullet>::iterator it = enemyBullets.begin(); it != enemyBullets.end(); ++it) {
+                DrawCircle(it->x,it->y,it->r,YELLOW);
+            }
+            for (std::list<Wall>::iterator it = walls.begin(); it != walls.end(); ++it) {
+                DrawRectangle(it->domain.x,it->domain.y,it->domain.width, it->domain.height, GREEN);
+            }
+            DrawRectangle(C.domain.x,C.domain.y,C.domain.width,C.domain.height,BLUE);
+            DrawRectangle(50,50,10,10,BLACK);
+
+            for(int i = 0; i < C.health; ++i) {
+                DrawCircle(15 + i * 25, 15, 10, RED);
+            }
+        }
+
+        if(!GameStart){
+            DrawRectangle(100,100,150,75,RED);
         }
 
 
