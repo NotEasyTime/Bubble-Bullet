@@ -2,6 +2,7 @@
 #include "raymath.h"        // Required for: Vector2Clamp()
 #include <list>
 #include "objects.hpp"
+#include <iostream>
 
 #define MAX(a, b) ((a)>(b)? (a) : (b))
 #define MIN(a, b) ((a)<(b)? (a) : (b))
@@ -33,7 +34,7 @@ int main(void)
     enemies.push_back(Enemy(Rectangle{120, 120, 20, 20}));
     enemies.push_back(Enemy(Rectangle{120, 140, 20, 20}));
     enemies.push_back(Enemy(Rectangle{140, 120, 20, 20}));
-    walls.push_back(Wall(Rectangle{50, 50,150,300}));
+    walls.push_back(Wall(Rectangle{50, 50,50,300}));
 
     Player C(Rectangle{gameScreenWidth / 2, gameScreenHeight / 2, 20,20});
 
@@ -49,6 +50,7 @@ int main(void)
     // Main game loop
     while (!WindowShouldClose())  // Detect window close button or ESC key
     {
+
         // Update Camera
         const float cameraSpeed = 200.0f;  // Camera movement speed
 
@@ -154,6 +156,16 @@ int main(void)
                 it = enemies.erase(it);
             }
         }
+
+        for (std::list<Bullet>::iterator jit = bullets.begin(); jit != bullets.end(); ++jit) {
+            for(std::list<Wall>::iterator it = walls.begin(); it != walls.end(); ++it){
+                if(CheckCollisionCircleRec(Vector2{jit->x,jit->y}, jit->r, it->domain)){
+                    jit = bullets.erase(jit);
+                }
+            }
+
+        }
+
 
         for (std::list<Bullet>::iterator it = enemyBullets.begin(); it != enemyBullets.end(); ++it) {
             if(CheckCollisionCircleRec(Vector2{it->x,it->y}, it->r, C.domain)){
