@@ -29,6 +29,7 @@ public:
     double dist;
     bool traveling = false;
 
+
 };
 
 class Player {
@@ -39,6 +40,7 @@ public:
     void move(float ax, float ay){ domain.x += ax; domain.y += ay; }
     Rectangle domain;
     Texture tex;
+    int health = 3;
 
 
 };

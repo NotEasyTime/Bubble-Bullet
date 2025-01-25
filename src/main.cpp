@@ -26,6 +26,7 @@ int main(void)
     RenderTexture2D target = LoadRenderTexture(gameScreenWidth, gameScreenHeight);
     SetTextureFilter(target.texture, TEXTURE_FILTER_BILINEAR);  // Texture scale filter to use
 
+    std::list<Bullet> enemyBullets;
     std::list<Enemy> enemies;
     std::list<Bullet> bullets;
     enemies.push_back(Enemy(Rectangle{120, 120, 20, 20}));
@@ -125,6 +126,18 @@ int main(void)
                     it->traveling = false;
                 }
 
+                int rand = GetRandomValue(0,100);
+                if(rand < 5){
+                    //Vector2 worldMouse = GetScreenToWorld2D(Vector2{it->domain.x,it->domain.y}, camera);
+
+                    // Calculate direction from player to mouse
+                    Vector2 direction = Vector2Subtract((Vector2){ C.domain.x, C.domain.y},Vector2{it->domain.x,it->domain.y}  );
+                    direction = Vector2Normalize(direction);
+
+                    // Add the bullet to the list
+                    enemyBullets.push_back(Bullet(it->domain.x, it->domain.y, 10, direction, 5));
+                }
+
             }
 
             bool enemyHit = false;
@@ -143,7 +156,12 @@ int main(void)
             it->x += it->speed * it->vec.x;
             it->y += it->speed * it->vec.y;
         }
+        for (std::list<Bullet>::iterator it = enemyBullets.begin(); it != enemyBullets.end(); ++it) {
+            it->x += it->speed * it->vec.x;
+            it->y += it->speed * it->vec.y;
+        }
 
+        //player health points
 
 
 
@@ -158,8 +176,16 @@ int main(void)
         for (std::list<Bullet>::iterator it = bullets.begin(); it != bullets.end(); ++it) {
             DrawCircle(it->x,it->y,it->r,BROWN);
         }
+        for (std::list<Bullet>::iterator it = enemyBullets.begin(); it != enemyBullets.end(); ++it) {
+            DrawCircle(it->x,it->y,it->r,YELLOW);
+        }
         DrawRectangle(C.domain.x,C.domain.y,C.domain.width,C.domain.height,BLUE);
         DrawRectangle(50,50,10,10,BLACK);
+
+        for(int i = 0; i < C.health; ++i) {
+            DrawCircle(15 + i * 25, 15, 10, RED);
+        }
+
         EndMode2D();
 
         EndTextureMode();
