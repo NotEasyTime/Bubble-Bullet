@@ -49,21 +49,24 @@ int main(void)
 
         // Update domain and camera target positions
         if (IsKeyDown(KEY_W)) {
-            C.domain.y -= cameraSpeed * deltaTime;
+            C.domain.y -= 5;
         }
         if (IsKeyDown(KEY_S)) {
-            C.domain.y += cameraSpeed * deltaTime;
+            C.domain.y += 5;
         }
         if (IsKeyDown(KEY_A)) {
-            C.domain.x -= cameraSpeed * deltaTime;
+            C.domain.x -= 5;
         }
         if (IsKeyDown(KEY_D)) {
-            C.domain.x += cameraSpeed * deltaTime;
+            C.domain.x += 5;
         }
+
 
         // Sync camera target with domain position
         camera.target.x = C.domain.x;
         camera.target.y = C.domain.y;
+
+
 
         // Drawing logic goes here, ensuring it uses the updated camera target
 
