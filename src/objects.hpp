@@ -43,5 +43,15 @@ public:
 
 };
 
+class Bullet {
+public:
+
+    Bullet(float xx, float yy, float rr, Vector2 v, float sp) : x(xx), y(yy), r(rr), vec(v), speed(sp) {}
+
+    float x, y, r;
+    Vector2 vec;
+    float speed;
+};
+
 
 #endif

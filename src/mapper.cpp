@@ -27,10 +27,7 @@ int main(void)
     SetTextureFilter(target.texture, TEXTURE_FILTER_BILINEAR);  // Texture scale filter to use
 
     std::list<Enemy> enemies;
-    std::list<Bullet> bullets;
     enemies.push_back(Enemy(Rectangle{120, 120, 20, 20}));
-    enemies.push_back(Enemy(Rectangle{120, 140, 20, 20}));
-    enemies.push_back(Enemy(Rectangle{140, 120, 20, 20}));
 
     Player C(Rectangle{gameScreenWidth / 2, gameScreenHeight / 2, 20,20});
 
@@ -48,16 +45,7 @@ int main(void)
     {
         // Update Camera
         const float cameraSpeed = 200.0f;  // Camera movement speed
-
-        // Compute required framebuffer scaling
-        float scale = MIN((float)GetScreenWidth() / gameScreenWidth, (float)GetScreenHeight() / gameScreenHeight);
-        // Update virtual mouse (clamped mouse value behind game screen)
-        Vector2 mouse = GetMousePosition();
-        Vector2 virtualMouse = { 0 };
-        virtualMouse.x = (mouse.x - (GetScreenWidth() - (gameScreenWidth * scale)) * 0.5f) / scale;
-        virtualMouse.y = (mouse.y - (GetScreenHeight() - (gameScreenHeight * scale)) * 0.5f) / scale;
-        virtualMouse = Vector2Clamp(virtualMouse, (Vector2){ 0, 0 }, (Vector2){ (float)gameScreenWidth, (float)gameScreenHeight });
-
+        float deltaTime = GetFrameTime(); // Frame delta time
 
         // Update domain and camera target positions
         if (IsKeyDown(KEY_W)) {
@@ -78,18 +66,9 @@ int main(void)
         camera.target.x = C.domain.x;
         camera.target.y = C.domain.y;
 
-        if (IsMouseButtonPressed(0)) {
-            // Convert screen mouse position to world position
-            Vector2 worldMouse = GetScreenToWorld2D(virtualMouse, camera);
 
-            // Calculate direction from player to mouse
-            Vector2 direction = Vector2Subtract(worldMouse, (Vector2){ C.domain.x, C.domain.y });
-            direction = Vector2Normalize(direction);
 
-            // Add the bullet to the list
-            bullets.push_back(Bullet(C.domain.x, C.domain.y, 10, direction, 5));
-        }
-
+        // Drawing logic goes here, ensuring it uses the updated camera target
 
 
 
@@ -124,28 +103,18 @@ int main(void)
                 if (it->domain.x == it->dest.x && it->domain.y == it->dest.y) {
                     it->traveling = false;
                 }
-
-            }
-
-            bool enemyHit = false;
-            for (std::list<Bullet>::iterator jit = bullets.begin(); jit != bullets.end(); ++jit) {
-                if(CheckCollisionCircleRec(Vector2{jit->x,jit->y}, jit->r, it->domain)){
-                    enemyHit = true;
-                    break; // No need to check further bullets for this enemy
-                }
-            }
-            if (enemyHit) {
-                it = enemies.erase(it);
             }
         }
 
-        for (std::list<Bullet>::iterator it = bullets.begin(); it != bullets.end(); ++it) {
-            it->x += it->speed * it->vec.x;
-            it->y += it->speed * it->vec.y;
-        }
+        // Compute required framebuffer scaling
+        float scale = MIN((float)GetScreenWidth() / gameScreenWidth, (float)GetScreenHeight() / gameScreenHeight);
 
-
-
+        // Update virtual mouse (clamped mouse value behind game screen)
+        Vector2 mouse = GetMousePosition();
+        Vector2 virtualMouse = { 0 };
+        virtualMouse.x = (mouse.x - (GetScreenWidth() - (gameScreenWidth * scale)) * 0.5f) / scale;
+        virtualMouse.y = (mouse.y - (GetScreenHeight() - (gameScreenHeight * scale)) * 0.5f) / scale;
+        virtualMouse = Vector2Clamp(virtualMouse, (Vector2){ 0, 0 }, (Vector2){ (float)gameScreenWidth, (float)gameScreenHeight });
 
         // Draw
         BeginTextureMode(target);
@@ -154,9 +123,6 @@ int main(void)
         BeginMode2D(camera);
         for (std::list<Enemy>::iterator it = enemies.begin(); it != enemies.end(); ++it) {
             DrawRectangle(it->domain.x, it->domain.y, it->domain.width, it->domain.height, RED);
-        }
-        for (std::list<Bullet>::iterator it = bullets.begin(); it != bullets.end(); ++it) {
-            DrawCircle(it->x,it->y,it->r,BROWN);
         }
         DrawRectangle(C.domain.x,C.domain.y,C.domain.width,C.domain.height,BLUE);
         DrawRectangle(50,50,10,10,BLACK);
