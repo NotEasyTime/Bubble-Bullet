@@ -26,12 +26,14 @@ int main(void)
     RenderTexture2D target = LoadRenderTexture(gameScreenWidth, gameScreenHeight);
     SetTextureFilter(target.texture, TEXTURE_FILTER_BILINEAR);  // Texture scale filter to use
 
+    std::list<Wall> walls;
     std::list<Bullet> enemyBullets;
     std::list<Enemy> enemies;
     std::list<Bullet> bullets;
     enemies.push_back(Enemy(Rectangle{120, 120, 20, 20}));
     enemies.push_back(Enemy(Rectangle{120, 140, 20, 20}));
     enemies.push_back(Enemy(Rectangle{140, 120, 20, 20}));
+    walls.push_back(Wall(Rectangle{50, 50,150,300}));
 
     Player C(Rectangle{gameScreenWidth / 2, gameScreenHeight / 2, 20,20});
 
@@ -146,9 +148,23 @@ int main(void)
                     enemyHit = true;
                     break; // No need to check further bullets for this enemy
                 }
+
             }
             if (enemyHit) {
                 it = enemies.erase(it);
+            }
+        }
+
+        for (std::list<Bullet>::iterator it = enemyBullets.begin(); it != enemyBullets.end(); ++it) {
+            if(CheckCollisionCircleRec(Vector2{it->x,it->y}, it->r, C.domain)){
+                --C.health;
+                break; // No need to check further bullets for this enemy
+            }
+            for (std::list<Wall>::iterator jit = walls.begin(); jit != walls.end(); ++jit) {
+                if (CheckCollisionCircleRec(Vector2{it->x,it->y}, it->r, jit->domain)){
+                    it = enemyBullets.erase(it);
+                }
+
             }
         }
 
@@ -161,7 +177,7 @@ int main(void)
             it->y += it->speed * it->vec.y;
         }
 
-        //player health points
+
 
 
 
@@ -179,12 +195,17 @@ int main(void)
         for (std::list<Bullet>::iterator it = enemyBullets.begin(); it != enemyBullets.end(); ++it) {
             DrawCircle(it->x,it->y,it->r,YELLOW);
         }
+        for (std::list<Wall>::iterator it = walls.begin(); it != walls.end(); ++it) {
+            DrawRectangle(it->domain.x,it->domain.y,it->domain.width, it->domain.height, GREEN);
+        }
         DrawRectangle(C.domain.x,C.domain.y,C.domain.width,C.domain.height,BLUE);
         DrawRectangle(50,50,10,10,BLACK);
 
         for(int i = 0; i < C.health; ++i) {
             DrawCircle(15 + i * 25, 15, 10, RED);
         }
+
+
 
         EndMode2D();
 

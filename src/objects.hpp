@@ -55,5 +55,11 @@ public:
     float speed;
 };
 
+class Wall {
+public:
+    Rectangle domain;
+    Wall(Rectangle wall){domain = wall;}
+
+};
 
 #endif
