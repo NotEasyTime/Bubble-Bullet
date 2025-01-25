@@ -1,6 +1,7 @@
 #include "raylib.h"
-
 #include "raymath.h"        // Required for: Vector2Clamp()
+#include <list>
+#include "objects.hpp"
 
 #define MAX(a, b) ((a)>(b)? (a) : (b))
 #define MIN(a, b) ((a)<(b)? (a) : (b))
@@ -25,57 +26,119 @@ int main(void)
     RenderTexture2D target = LoadRenderTexture(gameScreenWidth, gameScreenHeight);
     SetTextureFilter(target.texture, TEXTURE_FILTER_BILINEAR);  // Texture scale filter to use
 
+    std::list<Enemy> enemies;
+    enemies.push_back(Enemy(Rectangle{120, 120, 20, 20}));
 
-    SetTargetFPS(60);                   // Set our game to run at 60 frames-per-second
-    //--------------------------------------------------------------------------------------
+    Player C(Rectangle{gameScreenWidth / 2, gameScreenHeight / 2, 20,20});
+
+    // Initialize camera
+    Camera2D camera = {0};
+    camera.target = (Vector2){ gameScreenWidth / 2.0f, gameScreenHeight / 2.0f };
+    camera.offset = (Vector2){ gameScreenWidth / 2.0f, gameScreenHeight / 2.0f };
+    camera.rotation = 0.0f;
+    camera.zoom = 1.0f;
+
+    SetTargetFPS(60);  // Set our game to run at 60 frames-per-second
 
     // Main game loop
-    while (!WindowShouldClose())        // Detect window close button or ESC key
+    while (!WindowShouldClose())  // Detect window close button or ESC key
     {
-        // Update
-        //----------------------------------------------------------------------------------
-        // Compute required framebuffer scaling
-        float scale = MIN((float)GetScreenWidth()/gameScreenWidth, (float)GetScreenHeight()/gameScreenHeight);
+        // Update Camera
+        const float cameraSpeed = 200.0f;  // Camera movement speed
+        float deltaTime = GetFrameTime(); // Frame delta time
 
+        // Update domain and camera target positions
+        if (IsKeyDown(KEY_W)) {
+            C.domain.y -= cameraSpeed * deltaTime;
+        }
+        if (IsKeyDown(KEY_S)) {
+            C.domain.y += cameraSpeed * deltaTime;
+        }
+        if (IsKeyDown(KEY_A)) {
+            C.domain.x -= cameraSpeed * deltaTime;
+        }
+        if (IsKeyDown(KEY_D)) {
+            C.domain.x += cameraSpeed * deltaTime;
+        }
+
+        // Sync camera target with domain position
+        camera.target.x = C.domain.x;
+        camera.target.y = C.domain.y;
+
+        // Drawing logic goes here, ensuring it uses the updated camera target
+
+
+
+        //UPDATE ENEMY
+        for (std::list<Enemy>::iterator it = enemies.begin(); it != enemies.end(); ++it) {
+            // Assign a random destination if not traveling
+            if (!it->traveling) {
+                it->dest.x = it->domain.x + (GetRandomValue(0, 100) - 50);
+                it->dest.y = it->domain.y + (GetRandomValue(0, 100) - 50);
+                it->traveling = true;
+            }
+
+            // Move toward destination
+            if (it->traveling) {
+                if (it->domain.x < it->dest.x) {
+                    it->move(1, 0);
+                    if (it->domain.x > it->dest.x) it->domain.x = it->dest.x; // Prevent overshoot
+                } else if (it->domain.x > it->dest.x) {
+                    it->move(-1, 0);
+                    if (it->domain.x < it->dest.x) it->domain.x = it->dest.x; // Prevent overshoot
+                }
+
+                if (it->domain.y < it->dest.y) {
+                    it->move(0, 1);
+                    if (it->domain.y > it->dest.y) it->domain.y = it->dest.y; // Prevent overshoot
+                } else if (it->domain.y > it->dest.y) {
+                    it->move(0, -1);
+                    if (it->domain.y < it->dest.y) it->domain.y = it->dest.y; // Prevent overshoot
+                }
+
+                // Check if destination is reached
+                if (it->domain.x == it->dest.x && it->domain.y == it->dest.y) {
+                    it->traveling = false;
+                }
+            }
+        }
+
+        // Compute required framebuffer scaling
+        float scale = MIN((float)GetScreenWidth() / gameScreenWidth, (float)GetScreenHeight() / gameScreenHeight);
 
         // Update virtual mouse (clamped mouse value behind game screen)
         Vector2 mouse = GetMousePosition();
         Vector2 virtualMouse = { 0 };
-        virtualMouse.x = (mouse.x - (GetScreenWidth() - (gameScreenWidth*scale))*0.5f)/scale;
-        virtualMouse.y = (mouse.y - (GetScreenHeight() - (gameScreenHeight*scale))*0.5f)/scale;
+        virtualMouse.x = (mouse.x - (GetScreenWidth() - (gameScreenWidth * scale)) * 0.5f) / scale;
+        virtualMouse.y = (mouse.y - (GetScreenHeight() - (gameScreenHeight * scale)) * 0.5f) / scale;
         virtualMouse = Vector2Clamp(virtualMouse, (Vector2){ 0, 0 }, (Vector2){ (float)gameScreenWidth, (float)gameScreenHeight });
 
-        // Apply the same transformation as the virtual mouse to the real mouse (i.e. to work with raygui)
-        //SetMouseOffset(-(GetScreenWidth() - (gameScreenWidth*scale))*0.5f, -(GetScreenHeight() - (gameScreenHeight*scale))*0.5f);
-        //SetMouseScale(1/scale, 1/scale);
-        //----------------------------------------------------------------------------------
-
         // Draw
-        //----------------------------------------------------------------------------------
-        // Draw everything in the render texture, note this will not be rendered on screen, yet
         BeginTextureMode(target);
         ClearBackground(RAYWHITE);  // Clear render texture background color
 
+        BeginMode2D(camera);
+        for (std::list<Enemy>::iterator it = enemies.begin(); it != enemies.end(); ++it) {
+            DrawRectangle(it->domain.x, it->domain.y, it->domain.width, it->domain.height, RED);
+        }
+        DrawRectangle(C.domain.x,C.domain.y,C.domain.width,C.domain.height,BLUE);
+        DrawRectangle(50,50,10,10,BLACK);
+        EndMode2D();
 
         EndTextureMode();
 
         BeginDrawing();
-        ClearBackground(BLACK);     // Clear screen background
+        ClearBackground(BLACK);  // Clear screen background
 
-        // Draw render texture to screen, properly scaled
         DrawTexturePro(target.texture, (Rectangle){ 0.0f, 0.0f, (float)target.texture.width, (float)-target.texture.height },
-                       (Rectangle){ (GetScreenWidth() - ((float)gameScreenWidth*scale))*0.5f, (GetScreenHeight() - ((float)gameScreenHeight*scale))*0.5f,
-                           (float)gameScreenWidth*scale, (float)gameScreenHeight*scale }, (Vector2){ 0, 0 }, 0.0f, WHITE);
+                       (Rectangle){ (GetScreenWidth() - ((float)gameScreenWidth * scale)) * 0.5f, (GetScreenHeight() - ((float)gameScreenHeight * scale)) * 0.5f,
+                           (float)gameScreenWidth * scale, (float)gameScreenHeight * scale }, (Vector2){ 0, 0 }, 0.0f, WHITE);
+
         EndDrawing();
-        //--------------------------------------------------------------------------------------
     }
 
-    // De-Initialization
-    //--------------------------------------------------------------------------------------
-    UnloadRenderTexture(target);        // Unload render texture
-
-    CloseWindow();                      // Close window and OpenGL context
-    //--------------------------------------------------------------------------------------
+    UnloadRenderTexture(target);
+    CloseWindow();
 
     return 0;
 }
