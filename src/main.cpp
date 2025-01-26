@@ -34,9 +34,9 @@ void ResetGame(Player &player, std::list<Enemy> &enemies, std::list<Bullet> &bul
 
     // Reset enemies
     enemies.clear();
-    enemies.push_back(Enemy(Rectangle{120, 120, 20, 20}));
-    enemies.push_back(Enemy(Rectangle{200, 200, 20, 20}));
-    enemies.push_back(Enemy(Rectangle{300, 150, 20, 20}));
+    enemies.push_back(Enemy(Rectangle{120, 120, 100, 100}));
+    enemies.push_back(Enemy(Rectangle{200, 200, 100, 100}));
+    enemies.push_back(Enemy(Rectangle{300, 150, 100, 100}));
 
     // Reset score
     playerScore = 0;
@@ -55,8 +55,8 @@ int main(void)
     InitWindow(windowWidth, windowHeight, "Squirrel vs Bess Game");
     SetWindowMinSize(320, 240);
 
-    int gameScreenWidth = 640;
-    int gameScreenHeight = 480;
+    int gameScreenWidth = 1640;
+    int gameScreenHeight = 1480;
 
     // Render texture initialization, used to hold the rendering result so we can easily resize it
     RenderTexture2D target = LoadRenderTexture(gameScreenWidth, gameScreenHeight);
@@ -66,12 +66,13 @@ int main(void)
     std::list<Bullet> enemyBullets;
     std::list<Enemy> enemies;
     std::list<Bullet> bullets;
-    enemies.push_back(Enemy(Rectangle{120, 120, 20, 20}));
-    enemies.push_back(Enemy(Rectangle{120, 140, 20, 20}));
-    enemies.push_back(Enemy(Rectangle{140, 120, 20, 20}));
+    enemies.push_back(Enemy(Rectangle{120, 120, 200, 200}));
+    enemies.push_back(Enemy(Rectangle{120, 140, 200, 200}));
+    enemies.push_back(Enemy(Rectangle{140, 120, 200, 200}));
     walls.push_back(Wall(Rectangle{50, 50,50,300}));
 
-    Player C(Rectangle{gameScreenWidth / 2, gameScreenHeight / 2, 20,20});
+
+    Player C(Rectangle{gameScreenWidth / 2, gameScreenHeight / 2, 306 / 1.5,254 / 1.5});
 
     // Initialize camera
     Camera2D camera = {0};
@@ -81,6 +82,32 @@ int main(void)
     camera.zoom = 1.0f;
 
     SetTargetFPS(60);  // Set our game to run at 60 frames-per-second
+
+    // Textures
+    Texture2D over_back = LoadTexture("../textures/back_ground_over.png");
+    Texture2D chester_norm = LoadTexture("../textures/chester.png");
+    Texture2D bee = LoadTexture("../textures/bee.png");
+    Texture2D title = LoadTexture("../textures/title.png");
+    Texture2D splash = LoadTexture("../textures/splash.png");
+
+    splash.width /= 2;
+    splash.height /= 2;
+
+    title.width = gameScreenWidth;
+    title.height = gameScreenHeight;
+
+    bee.width /= 2.3;
+    bee.height /=2.3;
+
+    chester_norm.width = 306 / 1.5;
+    chester_norm.height = 254 / 1.5;
+
+
+    // Calculate the new width and height
+    over_back.width = gameScreenWidth;
+    over_back.height = gameScreenHeight;
+
+
 
     // -------------------------------------
     // ORIGINAL CODE: Main Game Loop
@@ -115,19 +142,25 @@ int main(void)
 
         if (gameState == MENU) {
             // Main Menu
-            DrawText("Welcome to Squirrel vs Bess!", gameScreenWidth / 2 - MeasureText("Welcome to Squirrel vs Bess!", 20) / 2, 100, 20, WHITE);
-            DrawRectangle(gameScreenWidth / 2 - 50, 200, 100, 50, DARKGRAY);
-            DrawText("Start", gameScreenWidth / 2 - MeasureText("Start", 20) / 2, 215, 20, WHITE);
+
+            DrawTexture(title, 0, 0, WHITE);
+            DrawTexture(splash, 150, 20, WHITE);
+
+            //DrawText("Welcome to Squirrel vs Bess!", gameScreenWidth / 2 - MeasureText("Welcome to Squirrel vs Bess!", 20) / 2, 100, 20, WHITE);
+            DrawRectangle(gameScreenWidth / 2 - 50, 600, 100, 50, DARKGRAY);
+            DrawText("Start", gameScreenWidth / 2 - MeasureText("Start", 20) / 2, 615, 20, WHITE);
 
             if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
                 Vector2 mousePos = virtualMouse;
-                if (CheckCollisionPointRec(mousePos, (Rectangle){gameScreenWidth / 2 - 50, 200, 100, 50})) {
+                if (CheckCollisionPointRec(mousePos, (Rectangle){gameScreenWidth / 2 - 50, 600, 100, 50})) {
                     ResetGame(C, enemies, bullets, enemyBullets);
                     gameState = PLAYING;
                 }
             }
         } else if (gameState == PLAYING) {
             ClearBackground(RAYWHITE);
+
+            DrawTexture(over_back, 0, 0, WHITE);
 
             // -------------------------------------
             // Player Movement
@@ -146,7 +179,7 @@ int main(void)
             if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
                 Vector2 mousePos = virtualMouse;
                 Vector2 direction = Vector2Normalize(Vector2Subtract(mousePos, (Vector2){C.domain.x + C.domain.width / 2, C.domain.y + C.domain.height / 2}));
-                bullets.push_back(Bullet(C.domain.x + C.domain.width / 2, C.domain.y + C.domain.height / 2, 10, direction, 5));
+                bullets.push_back(Bullet(C.domain.x + C.domain.width / 2, C.domain.y + C.domain.height / 2, 35, direction, 5));
             }
 
             // -------------------------------------
@@ -187,7 +220,7 @@ int main(void)
                 if (GetRandomValue(0, 200) < 1) {
                     Vector2 direction = Vector2Subtract((Vector2){C.domain.x, C.domain.y}, (Vector2){enemy.domain.x, enemy.domain.y});
                     direction = Vector2Normalize(direction);
-                    enemyBullets.push_back(Bullet(enemy.domain.x + enemy.domain.width / 2, enemy.domain.y + enemy.domain.height / 2, 10, direction, 3));
+                    enemyBullets.push_back(Bullet(enemy.domain.x + enemy.domain.width / 2, enemy.domain.y + enemy.domain.height / 2, 35, direction, 3));
                 }
             }
 
@@ -234,7 +267,7 @@ int main(void)
 
             // Draw Game Elements
             for (auto &enemy : enemies) {
-                DrawRectangle(enemy.domain.x, enemy.domain.y, enemy.domain.width, enemy.domain.height, RED);
+                DrawTexture(bee, enemy.domain.x, enemy.domain.y, WHITE);
             }
             for (auto &bullet : bullets) {
                 DrawCircle(bullet.x, bullet.y, bullet.r, BROWN);
@@ -242,7 +275,7 @@ int main(void)
             for (auto &bullet : enemyBullets) {
                 DrawCircle(bullet.x, bullet.y, bullet.r, YELLOW);
             }
-            DrawRectangle(C.domain.x, C.domain.y, C.domain.width, C.domain.height, BLUE);
+            DrawTexture(chester_norm, C.domain.x, C.domain.y, WHITE);
 
             // Draw Health and Score
             for (int i = 0; i < C.health; ++i) {
