@@ -17,7 +17,8 @@ enum GameState {
     LEVELOC,
     PAUSED,
     GAME_OVER,
-    WIN
+    WIN,
+    LORE
 };
 
 GameState gameState = MENU; // Initialize gameState to MENU
@@ -96,6 +97,42 @@ int main(void)
     Texture2D acorn = LoadTexture("../textures/acorn.png");
     Texture2D play = LoadTexture("../textures/play.png");
     Texture2D boss = LoadTexture("../textures/boss.png");
+    Texture2D win = LoadTexture("../textures/win.png");
+    Texture2D lose = LoadTexture("../textures/lose.png");
+    Texture2D one= LoadTexture("../textures/one.png");
+    Texture2D two= LoadTexture("../textures/two.png");
+    Texture2D three= LoadTexture("../textures/three.png");
+    Texture2D four= LoadTexture("../textures/four.png");
+    Texture2D five= LoadTexture("../textures/five.png");
+    Texture2D six= LoadTexture("../textures/six.png");
+    Texture2D sev= LoadTexture("../textures/sev.png");
+    Texture2D eight= LoadTexture("../textures/eight.png");
+    Texture2D right = LoadTexture("../textures/right.png");
+    Texture2D left = LoadTexture("../textures/left.png");
+    Texture2D tree = LoadTexture("../textures/tree.png");
+    Texture2D credit = LoadTexture("../textures/credit.png");
+
+    one.width = gameScreenWidth;
+    two.width = gameScreenWidth;
+    three.width = gameScreenWidth;
+    four.width = gameScreenWidth;
+    five.width = gameScreenWidth;
+    six.width = gameScreenWidth;
+    sev.width = gameScreenWidth;
+    eight.width = gameScreenWidth;
+
+    right.width = 175;
+    right.height = 175;
+    left.width = 175;
+    left.height = 175;
+
+    int loreImg = 1;
+
+    lose.width = gameScreenWidth;
+    lose.height = gameScreenHeight;
+
+    win.width = gameScreenWidth;
+    win.height = gameScreenHeight;
 
     boss.width = 350;
     boss.height = 350;
@@ -176,9 +213,17 @@ int main(void)
         if (gameState == MENU) {
             // Main Menu
 
-            //PlaySound(start_music);
-            if (!IsSoundPlaying(lore_music)) {
-                PlaySound(lore_music);
+            if (!IsSoundPlaying(start_music)) {
+                PlaySound(start_music);
+            }
+            if (IsSoundPlaying(boss_music)) {
+                StopSound(boss_music);
+            }
+            if (IsSoundPlaying(fight_music)) {
+                StopSound(fight_music);
+            }
+            if (IsSoundPlaying(lore_music)) {
+                StopSound(lore_music);
             }
 
             DrawTexture(title, 0, 0, WHITE);
@@ -193,17 +238,23 @@ int main(void)
                 Vector2 mousePos = virtualMouse;
                 if (CheckCollisionPointRec(mousePos, (Rectangle){gameScreenWidth / 2 - 50, 600, 200, 100})) {
                     ResetGame(C, enemies, bullets, enemyBullets);
-                    gameState = PLAYING;
+                    gameState = LORE;
                 }
             }
         } else if (gameState == PLAYING) {
             ClearBackground(RAYWHITE);
 
-            if (IsSoundPlaying(lore_music)) {
-                StopSound(lore_music);
+            if (IsSoundPlaying(start_music)) {
+                StopSound(start_music);
+            }
+            if (IsSoundPlaying(boss_music)) {
+                StopSound(boss_music);
             }
             if (!IsSoundPlaying(fight_music)) {
                 PlaySound(fight_music);
+            }
+            if (IsSoundPlaying(lore_music)) {
+                StopSound(lore_music);
             }
 
 
@@ -359,7 +410,8 @@ int main(void)
                 }
             }
         } else if (gameState == GAME_OVER) {
-            ClearBackground(BLACK);
+            ClearBackground(WHITE);
+            DrawTexture(lose,0,0,WHITE);
             DrawText("GAME OVER", gameScreenWidth / 2 - MeasureText("GAME OVER", 40) / 2, 100, 40, RED);
             DrawText(TextFormat("Your Score: %d", playerScore), gameScreenWidth / 2 - MeasureText(TextFormat("Your Score: %d", playerScore), 20) / 2, 160, 20, WHITE);
 
@@ -379,7 +431,11 @@ int main(void)
                 }
             }
         } else if (gameState == WIN) {
-            ClearBackground(BLACK);
+
+
+            BossBee.health = 50;
+            ClearBackground(WHITE);
+            DrawTexture(win,0,0,WHITE);
             DrawText("CONGRATULATIONS!", gameScreenWidth / 2 - MeasureText("CONGRATULATIONS!", 40) / 2, 100, 40, GREEN);
             DrawText(TextFormat("Your Score: %d", playerScore), gameScreenWidth / 2 - MeasureText(TextFormat("Your Score: %d", playerScore), 20) / 2, 160, 20, WHITE);
 
@@ -399,6 +455,20 @@ int main(void)
                 }
             }
         } else if(gameState == BOSS){
+
+            if (IsSoundPlaying(start_music)) {
+                StopSound(start_music);
+            }
+            if (!IsSoundPlaying(boss_music)) {
+                PlaySound(boss_music);
+            }
+            if (IsSoundPlaying(fight_music)) {
+                StopSound(fight_music);
+            }
+            if (IsSoundPlaying(lore_music)) {
+                StopSound(lore_music);
+            }
+
             ClearBackground(RAYWHITE);
             DrawTexture(boss_back, 0, 0, WHITE);
 
@@ -548,6 +618,8 @@ int main(void)
             DrawRectangle(gameScreenWidth / 2 - 50, 900, 100, 50, DARKGRAY);
             DrawText("Next", gameScreenWidth / 2 - MeasureText("Start", 20) / 2, 915, 20, WHITE);
 
+            DrawTexture(tree,50,300,WHITE);
+
             if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
                 Vector2 mousePos = virtualMouse;
                 if (CheckCollisionPointRec(mousePos, (Rectangle){gameScreenWidth / 2 - 50, 900, 100, 50})) {
@@ -555,6 +627,86 @@ int main(void)
                     gameState = BOSS;
                 }
             }
+        } else if(gameState == LORE){
+            ClearBackground(RAYWHITE);
+
+            if (IsSoundPlaying(start_music)) {
+                StopSound(start_music);
+            }
+            if (IsSoundPlaying(boss_music)) {
+                StopSound(boss_music);
+            }
+            if (IsSoundPlaying(fight_music)) {
+                StopSound(fight_music);
+            }
+            if (!IsSoundPlaying(lore_music)) {
+                PlaySound(lore_music);
+            }
+
+
+            switch(loreImg){
+                case(1):
+                    DrawTexture(one,0,0,WHITE);
+                    DrawText("Once upon a time, the world was round,",gameScreenWidth/2 -400,1000,50,BLACK);
+                    DrawText("sealed in a bubble, safe and sound.",gameScreenWidth/2 - 400,1050,50,BLACK);
+                    break;
+                case(2):
+                    DrawTexture(two,0,0,WHITE);
+                    DrawText("Inside this world lived Chester Squirrel,",gameScreenWidth/2 -400,1000,50,BLACK);
+                    DrawText("with fur as black as midnights swirl.",gameScreenWidth/2 - 400,1050,50,BLACK);
+                    break;
+                case(3):
+                    DrawTexture(three,0,0,WHITE);
+                    DrawText("But peace was shattered, one fateful day,",gameScreenWidth/2 -500,1000,50,BLACK);
+                    DrawText("when the Queen Bee rose to seize her way.",gameScreenWidth/2 - 500,1050,50,BLACK);
+                    break;
+                case(4):
+                    DrawTexture(four,0,0,WHITE);
+                    DrawText("Her honey bubbles filled the air,",gameScreenWidth/2 -400,1000,50,BLACK);
+                    DrawText("trapping creatures everywhere.",gameScreenWidth/2 - 400,1050,50,BLACK);
+                    break;
+                case(5):
+                    DrawTexture(five,0,0,WHITE);
+                    DrawText("She sought to coat the woods in gold,",gameScreenWidth/2 -400,1000,50,BLACK);
+                    DrawText("a sticky prison, cruel and cold.",gameScreenWidth/2 - 400,1050,50,BLACK);
+                    break;
+                case(6):
+                    DrawTexture(six,0,0,WHITE);
+                    DrawText("Chester saw his friends confined,",gameScreenWidth/2 -400,1000,50,BLACK);
+                    DrawText("and vowed to free them, heart and mind.",gameScreenWidth/2 - 400,1050,50,BLACK);
+                    break;
+                case(7):
+                    DrawTexture(sev,0,0,WHITE);
+                    DrawText("With nuts in paw and sling held tight,",gameScreenWidth/2 -400,1000,50,BLACK);
+                    DrawText("he set out popping each bubble in sight.",gameScreenWidth/2 - 400,1050,50,BLACK);
+                    break;
+                case(8):
+                    DrawTexture(eight,0,0,WHITE);
+                    DrawText("Through honeyed chaos, Chester fights,",gameScreenWidth/2 -450,1020,50,BLACK);
+                    DrawText("to save the forest and make things right.",gameScreenWidth/2 - 450,1070,50,BLACK);
+                    break;
+                case(9):
+                    DrawTexture(credit,50,50,WHITE);
+                    break;
+
+            }
+            DrawTexture(play,gameScreenWidth / 2 - 50, 1350,WHITE);
+            DrawTexture(left,100,1000,WHITE);
+            DrawTexture(right,gameScreenWidth - 200,1000,WHITE);
+
+            if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+                Vector2 mousePos = virtualMouse;
+                if (CheckCollisionPointRec(mousePos, (Rectangle){gameScreenWidth / 2 - 50, 1350, 200, 100})) {
+                    gameState = PLAYING;
+                }
+                if (CheckCollisionPointRec(mousePos, (Rectangle){150,1000,175,175}) && loreImg > 1) {
+                    --loreImg;
+                }
+                if (CheckCollisionPointRec(mousePos, (Rectangle){gameScreenWidth-150,1000,175,175}) && loreImg < 9) {
+                    ++loreImg;
+                }
+            }
+
         }
 
         EndMode2D();
