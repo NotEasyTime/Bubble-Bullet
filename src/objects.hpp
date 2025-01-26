@@ -28,6 +28,7 @@ public:
     Vector2 dest;
     double dist;
     bool traveling = false;
+    int health;
 
 
 };

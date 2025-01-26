@@ -13,6 +13,8 @@
 enum GameState {
     MENU,
     PLAYING,
+    BOSS,
+    LEVELOC,
     PAUSED,
     GAME_OVER,
     WIN
@@ -89,6 +91,26 @@ int main(void)
     Texture2D bee = LoadTexture("../textures/bee.png");
     Texture2D title = LoadTexture("../textures/title.png");
     Texture2D splash = LoadTexture("../textures/splash.png");
+    Texture2D boss_back = LoadTexture("../textures/boss_back.png");
+    Texture2D bubble = LoadTexture("../textures/bubble.png");
+    Texture2D acorn = LoadTexture("../textures/acorn.png");
+    Texture2D play = LoadTexture("../textures/play.png");
+    Texture2D boss = LoadTexture("../textures/boss.png");
+
+    boss.width = 350;
+    boss.height = 350;
+
+    play.width = 200;
+    play.height = 100;
+
+    acorn.width = 100;
+    acorn.height = 100;
+
+    bubble.width = 100;
+    bubble.height = 100;
+
+    boss_back.width = gameScreenWidth;
+    boss_back.height = gameScreenHeight;
 
     splash.width /= 2;
     splash.height /= 2;
@@ -102,6 +124,9 @@ int main(void)
     chester_norm.width = 306 / 1.5;
     chester_norm.height = 254 / 1.5;
 
+    Enemy BossBee(Rectangle{gameScreenWidth/2+50,gameScreenHeight/2+50, 350,350});
+    BossBee.health = 50;
+
 
     // Calculate the new width and height
     over_back.width = gameScreenWidth;
@@ -113,6 +138,13 @@ int main(void)
     // ORIGINAL CODE: Main Game Loop
     // -------------------------------------
     // Main Game Loop
+    InitAudioDevice();
+
+    Sound lore_music = LoadSound("../music/Chester the Squirrel Origin Song.mp3");
+    Sound boss_music = LoadSound("../music/Queen Bee Theme.mp3");
+    Sound fight_music = LoadSound("../music/Chester The Squiriel - World 1 Music _I'm actually going nuts.mp3");
+    Sound start_music = LoadSound("../music/Thank you End screen _ Menu Screen _ Chester Ocean Theme.mp3");
+
     while (!WindowShouldClose()) {
 
 
@@ -140,25 +172,40 @@ int main(void)
         BeginMode2D(camera);
         ClearBackground(BLACK);
 
+
         if (gameState == MENU) {
             // Main Menu
+
+            //PlaySound(start_music);
+            if (!IsSoundPlaying(lore_music)) {
+                PlaySound(lore_music);
+            }
 
             DrawTexture(title, 0, 0, WHITE);
             DrawTexture(splash, 150, 20, WHITE);
 
             //DrawText("Welcome to Squirrel vs Bess!", gameScreenWidth / 2 - MeasureText("Welcome to Squirrel vs Bess!", 20) / 2, 100, 20, WHITE);
-            DrawRectangle(gameScreenWidth / 2 - 50, 600, 100, 50, DARKGRAY);
-            DrawText("Start", gameScreenWidth / 2 - MeasureText("Start", 20) / 2, 615, 20, WHITE);
+            //DrawRectangle(gameScreenWidth / 2 - 50, 600, 100, 50, DARKGRAY);
+            DrawTexture(play,gameScreenWidth / 2 - 50, 600,WHITE);
+            //DrawText("Start", gameScreenWidth / 2 - MeasureText("Start", 20) / 2, 615, 20, WHITE);
 
             if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
                 Vector2 mousePos = virtualMouse;
-                if (CheckCollisionPointRec(mousePos, (Rectangle){gameScreenWidth / 2 - 50, 600, 100, 50})) {
+                if (CheckCollisionPointRec(mousePos, (Rectangle){gameScreenWidth / 2 - 50, 600, 200, 100})) {
                     ResetGame(C, enemies, bullets, enemyBullets);
                     gameState = PLAYING;
                 }
             }
         } else if (gameState == PLAYING) {
             ClearBackground(RAYWHITE);
+
+            if (IsSoundPlaying(lore_music)) {
+                StopSound(lore_music);
+            }
+            if (!IsSoundPlaying(fight_music)) {
+                PlaySound(fight_music);
+            }
+
 
             DrawTexture(over_back, 0, 0, WHITE);
 
@@ -260,9 +307,13 @@ int main(void)
                 }
             }
 
+            if(playerScore < 100 && enemies.size() < 5){
+                enemies.push_back(Enemy(Rectangle{GetRandomValue(0, gameScreenWidth),GetRandomValue(0, gameScreenHeight), 200,200}));
+            }
+
             // Check Win Condition
             if (enemies.empty()) {
-                gameState = WIN;
+                gameState = LEVELOC;
             }
 
             // Draw Game Elements
@@ -270,10 +321,12 @@ int main(void)
                 DrawTexture(bee, enemy.domain.x, enemy.domain.y, WHITE);
             }
             for (auto &bullet : bullets) {
-                DrawCircle(bullet.x, bullet.y, bullet.r, BROWN);
+                DrawTexture(acorn, bullet.x, bullet.y, WHITE);
             }
             for (auto &bullet : enemyBullets) {
-                DrawCircle(bullet.x, bullet.y, bullet.r, YELLOW);
+                DrawCircle(bullet.x + 50,bullet.y + 50, 50, WHITE);
+                DrawTexture(bubble,bullet.x, bullet.y, WHITE);
+
             }
             DrawTexture(chester_norm, C.domain.x, C.domain.y, WHITE);
 
@@ -345,6 +398,163 @@ int main(void)
                     break;
                 }
             }
+        } else if(gameState == BOSS){
+            ClearBackground(RAYWHITE);
+            DrawTexture(boss_back, 0, 0, WHITE);
+
+            if (!BossBee.traveling) {
+                BossBee.dest.x = GetRandomValue(0, gameScreenWidth - BossBee.domain.width);
+                BossBee.dest.y = GetRandomValue(0, gameScreenHeight - BossBee.domain.height);
+                BossBee.traveling = true;
+            }
+
+            float speed = 2.0f;
+            if (BossBee.domain.x < BossBee.dest.x){ BossBee.domain.x += speed;}
+            else if (BossBee.domain.x > BossBee.dest.x) {BossBee.domain.x -= speed;}
+
+            if (BossBee.domain.y < BossBee.dest.y){ BossBee.domain.y += speed;}
+            else if (BossBee.domain.y > BossBee.dest.y){ BossBee.domain.y -= speed;}
+
+            if (fabs(BossBee.domain.x - BossBee.dest.x) < speed && fabs(BossBee.domain.y - BossBee.dest.y) < speed) {
+                BossBee.traveling = false;
+            }
+
+            // Boss Shooting
+            if (GetRandomValue(0, 50) < 1) {
+                Vector2 direction = Vector2Subtract((Vector2){C.domain.x, C.domain.y}, (Vector2){BossBee.domain.x, BossBee.domain.y});
+                direction = Vector2Normalize(direction);
+
+                // Normal direction bullet
+                enemyBullets.push_back(Bullet(BossBee.domain.x + BossBee.domain.width / 2, BossBee.domain.y + BossBee.domain.height / 2, 35, direction, 3));
+
+                // Opposite direction bullet
+                enemyBullets.push_back(Bullet(BossBee.domain.x + BossBee.domain.width / 2, BossBee.domain.y + BossBee.domain.height / 2, 35, Vector2Scale(direction, -1), 3));
+
+                // Perpendicular direction bullet
+                Vector2 perpendicularDirection = (Vector2){-direction.y, direction.x}; // 90 degree clockwise rotation
+                enemyBullets.push_back(Bullet(BossBee.domain.x + BossBee.domain.width / 2, BossBee.domain.y + BossBee.domain.height / 2, 35, perpendicularDirection, 3));
+
+                // Negated perpendicular direction bullet
+                Vector2 negatedPerpendicularDirection = (Vector2){direction.y, -direction.x}; // 90 degree counter-clockwise rotation
+                enemyBullets.push_back(Bullet(BossBee.domain.x + BossBee.domain.width / 2, BossBee.domain.y + BossBee.domain.height / 2, 35, negatedPerpendicularDirection, 3));
+            }
+
+
+            DrawTexture(boss, BossBee.domain.x, BossBee.domain.y,WHITE);
+
+            // -------------------------------------
+            // Player Movement
+            // -------------------------------------
+            if (IsKeyDown(KEY_W)) C.domain.y = MAX(C.domain.y - 5, 0);
+            if (IsKeyDown(KEY_S)) C.domain.y = MIN(C.domain.y + 5, gameScreenHeight - C.domain.height);
+            if (IsKeyDown(KEY_A)) C.domain.x = MAX(C.domain.x - 5, 0);
+            if (IsKeyDown(KEY_D)) C.domain.x = MIN(C.domain.x + 5, gameScreenWidth - C.domain.width);
+
+            // camera.target.x = C.domain.x;
+            //camera.target.y = C.domain.y;
+
+            // -------------------------------------
+            // Player Shooting
+            // -------------------------------------
+            if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+                Vector2 mousePos = virtualMouse;
+                Vector2 direction = Vector2Normalize(Vector2Subtract(mousePos, (Vector2){C.domain.x + C.domain.width / 2, C.domain.y + C.domain.height / 2}));
+                bullets.push_back(Bullet(C.domain.x + C.domain.width / 2, C.domain.y + C.domain.height / 2, 35, direction, 5));
+            }
+
+            DrawTexture(chester_norm, C.domain.x, C.domain.y, WHITE);
+
+            // Draw Health and Score
+            for (int i = 0; i < C.health; ++i) {
+                DrawCircle(15 + i * 25, 15, 10, RED);
+            }
+
+            for (int i = 0; i < BossBee.health; ++i) {
+                DrawCircle(gameScreenWidth -25 - i * 25, 25, 20, RED);
+            }
+
+
+
+            if (C.health <= 0) {
+                gameState = GAME_OVER;
+            }
+
+            // Update Bullets
+            for (auto it = bullets.begin(); it != bullets.end();) {
+                it->x += it->speed * it->vec.x;
+                it->y += it->speed * it->vec.y;
+
+                if (it->x < 0 || it->x > gameScreenWidth || it->y < 0 || it->y > gameScreenHeight) {
+                    it = bullets.erase(it);
+                } else {
+                    ++it;
+                }
+            }
+
+            // Update Enemy Bullets
+            for (auto it = enemyBullets.begin(); it != enemyBullets.end();) {
+                it->x += it->speed * it->vec.x;
+                it->y += it->speed * it->vec.y;
+
+                if (CheckCollisionCircleRec((Vector2){it->x, it->y}, it->r, C.domain)) {
+                    C.health--;
+                    it = enemyBullets.erase(it);
+                } else if (it->x < 0 || it->x > gameScreenWidth || it->y < 0 || it->y > gameScreenHeight) {
+                    it = enemyBullets.erase(it);
+                } else {
+                    ++it;
+                }
+            }
+
+            // Collision Detection
+
+                bool enemyHit = false;
+                for (auto bullet = bullets.begin(); bullet != bullets.end();) {
+                    if (CheckCollisionCircleRec((Vector2){bullet->x, bullet->y}, bullet->r, BossBee.domain)) {
+                        bullet = bullets.erase(bullet);
+                        enemyHit = true;
+                        break;
+                    } else {
+                        ++bullet;
+                    }
+                }
+
+                if (enemyHit) {
+                    playerScore += 10;
+                    --BossBee.health;
+                }
+
+
+            for (auto &bullet : bullets) {
+                DrawTexture(acorn, bullet.x, bullet.y, WHITE);
+            }
+            for (auto &bullet : enemyBullets) {
+                DrawCircle(bullet.x + 50,bullet.y + 50, 50, WHITE);
+                DrawTexture(bubble,bullet.x, bullet.y, WHITE);
+
+            }
+
+            if(BossBee.health == 0){
+                gameState = WIN;
+            }
+
+
+
+
+        } else if(gameState == LEVELOC){
+            ClearBackground(RAYWHITE);
+            DrawText("You bee-t the first level!!",gameScreenWidth /2 - 50, gameScreenHeight /2, 30, BLACK);
+            //DrawText("Welcome to Squirrel vs Bess!", gameScreenWidth / 2 - MeasureText("Welcome to Squirrel vs Bess!", 20) / 2, 100, 20, WHITE);
+            DrawRectangle(gameScreenWidth / 2 - 50, 900, 100, 50, DARKGRAY);
+            DrawText("Next", gameScreenWidth / 2 - MeasureText("Start", 20) / 2, 915, 20, WHITE);
+
+            if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+                Vector2 mousePos = virtualMouse;
+                if (CheckCollisionPointRec(mousePos, (Rectangle){gameScreenWidth / 2 - 50, 900, 100, 50})) {
+                    ResetGame(C, enemies, bullets, enemyBullets);
+                    gameState = BOSS;
+                }
+            }
         }
 
         EndMode2D();
@@ -360,6 +570,7 @@ int main(void)
 
         EndDrawing();
     }
+    CloseAudioDevice();
 
 
 
