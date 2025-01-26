@@ -7,6 +7,41 @@
 #define MAX(a, b) ((a)>(b)? (a) : (b))
 #define MIN(a, b) ((a)<(b)? (a) : (b))
 
+
+// GameState enum
+//------------------------------------------------------------------------------------
+enum GameState {
+    MENU,
+    PLAYING,
+    PAUSED,
+    GAME_OVER,
+    WIN
+};
+
+GameState gameState = MENU; // Initialize gameState to MENU
+int playerScore = 0;
+
+
+void ResetGame(Player &player, std::list<Enemy> &enemies, std::list<Bullet> &bullets, std::list<Bullet> &enemyBullets) {
+    // Reset player attributes
+    player.domain.x = 320;  // Start in the middle of the screen
+    player.domain.y = 240;
+    player.health = 5;
+
+    // Clear bullets
+    bullets.clear();
+    enemyBullets.clear();
+
+    // Reset enemies
+    enemies.clear();
+    enemies.push_back(Enemy(Rectangle{120, 120, 20, 20}));
+    enemies.push_back(Enemy(Rectangle{200, 200, 20, 20}));
+    enemies.push_back(Enemy(Rectangle{300, 150, 20, 20}));
+
+    // Reset score
+    playerScore = 0;
+}
+
 //------------------------------------------------------------------------------------
 // Program main entry point
 //------------------------------------------------------------------------------------
@@ -15,11 +50,9 @@ int main(void)
     const int windowWidth = 800;
     const int windowHeight = 450;
 
-    bool GameStart = false;
-
     // Enable config flags for resizable window and vertical synchro
     SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_VSYNC_HINT);
-    InitWindow(windowWidth, windowHeight, "raylib [core] example - window scale letterbox");
+    InitWindow(windowWidth, windowHeight, "Squirrel vs Bess Game");
     SetWindowMinSize(320, 240);
 
     int gameScreenWidth = 640;
@@ -49,9 +82,12 @@ int main(void)
 
     SetTargetFPS(60);  // Set our game to run at 60 frames-per-second
 
-    // Main game loop
-    while (!WindowShouldClose())  // Detect window close button or ESC key
-    {
+    // -------------------------------------
+    // ORIGINAL CODE: Main Game Loop
+    // -------------------------------------
+    // Main Game Loop
+    while (!WindowShouldClose()) {
+
 
         // Update Camera
         const float cameraSpeed = 200.0f;  // Camera movement speed
@@ -66,172 +102,217 @@ int main(void)
         virtualMouse = Vector2Clamp(virtualMouse, (Vector2){ 0, 0 }, (Vector2){ (float)gameScreenWidth, (float)gameScreenHeight });
 
 
-        // Update domain and camera target positions
-        if (IsKeyDown(KEY_W)) {
-            C.domain.y -= 5;
-        }
-        if (IsKeyDown(KEY_S)) {
-            C.domain.y += 5;
-        }
-        if (IsKeyDown(KEY_A)) {
-            C.domain.x -= 5;
-        }
-        if (IsKeyDown(KEY_D)) {
-            C.domain.x += 5;
+        // Handle pause toggle
+        if (IsKeyPressed(KEY_P) && gameState == PLAYING) {
+            gameState = PAUSED;
+        } else if (IsKeyPressed(KEY_P) && gameState == PAUSED) {
+            gameState = PLAYING;
         }
 
-
-        // Sync camera target with domain position
-        camera.target.x = C.domain.x;
-        camera.target.y = C.domain.y;
-
-        if(GameStart){
-            if (IsMouseButtonPressed(0)) {
-                // Convert screen mouse position to world position
-                Vector2 worldMouse = GetScreenToWorld2D(virtualMouse, camera);
-
-                // Calculate direction from player to mouse
-                Vector2 direction = Vector2Subtract(worldMouse, (Vector2){ C.domain.x, C.domain.y });
-                direction = Vector2Normalize(direction);
-
-                // Add the bullet to the list
-                bullets.push_back(Bullet(C.domain.x, C.domain.y, 10, direction, 5));
-            }
-
-
-
-
-            //UPDATE ENEMY
-            for (std::list<Enemy>::iterator it = enemies.begin(); it != enemies.end(); ++it) {
-                // Assign a random destination if not traveling
-                if (!it->traveling) {
-                    it->dest.x = it->domain.x + (GetRandomValue(0, 100) - 50);
-                    it->dest.y = it->domain.y + (GetRandomValue(0, 100) - 50);
-                    it->traveling = true;
-                }
-
-                // Move toward destination
-                if (it->traveling) {
-                    if (it->domain.x < it->dest.x) {
-                        it->move(1, 0);
-                        if (it->domain.x > it->dest.x) it->domain.x = it->dest.x; // Prevent overshoot
-                    } else if (it->domain.x > it->dest.x) {
-                        it->move(-1, 0);
-                        if (it->domain.x < it->dest.x) it->domain.x = it->dest.x; // Prevent overshoot
-                    }
-
-                    if (it->domain.y < it->dest.y) {
-                        it->move(0, 1);
-                        if (it->domain.y > it->dest.y) it->domain.y = it->dest.y; // Prevent overshoot
-                    } else if (it->domain.y > it->dest.y) {
-                        it->move(0, -1);
-                        if (it->domain.y < it->dest.y) it->domain.y = it->dest.y; // Prevent overshoot
-                    }
-
-                    // Check if destination is reached
-                    if (it->domain.x == it->dest.x && it->domain.y == it->dest.y) {
-                        it->traveling = false;
-                    }
-
-                    int rand = GetRandomValue(0,100);
-                    if(rand < 2){
-                        //Vector2 worldMouse = GetScreenToWorld2D(Vector2{it->domain.x,it->domain.y}, camera);
-
-                        // Calculate direction from player to mouse
-                        Vector2 direction = Vector2Subtract((Vector2){ C.domain.x, C.domain.y},Vector2{it->domain.x,it->domain.y}  );
-                        direction = Vector2Normalize(direction);
-
-                        // Add the bullet to the list
-                        enemyBullets.push_back(Bullet(it->domain.x, it->domain.y, 10, direction, 5));
-                    }
-
-                }
-
-                bool enemyHit = false;
-                for (std::list<Bullet>::iterator jit = bullets.begin(); jit != bullets.end(); ++jit) {
-                    if(CheckCollisionCircleRec(Vector2{jit->x,jit->y}, jit->r, it->domain)){
-                        enemyHit = true;
-                        break; // No need to check further bullets for this enemy
-                    }
-
-                }
-                if (enemyHit) {
-                    it = enemies.erase(it);
-                }
-            }
-
-            for (std::list<Bullet>::iterator jit = bullets.begin(); jit != bullets.end(); ++jit) {
-                for(std::list<Wall>::iterator it = walls.begin(); it != walls.end(); ++it){
-                    if(CheckCollisionCircleRec(Vector2{jit->x,jit->y}, jit->r, it->domain)){
-                        jit = bullets.erase(jit);
-                    }
-                }
-
-            }
-
-
-            for (std::list<Bullet>::iterator it = enemyBullets.begin(); it != enemyBullets.end(); ++it) {
-                if(CheckCollisionCircleRec(Vector2{it->x,it->y}, it->r, C.domain)){
-                    --C.health;
-                    break; // No need to check further bullets for this enemy
-                }
-                for (std::list<Wall>::iterator jit = walls.begin(); jit != walls.end(); ++jit) {
-                    if (CheckCollisionCircleRec(Vector2{it->x,it->y}, it->r, jit->domain)){
-                        it = enemyBullets.erase(it);
-                    }
-
-                }
-            }
-
-            for (std::list<Bullet>::iterator it = bullets.begin(); it != bullets.end(); ++it) {
-                it->x += it->speed * it->vec.x;
-                it->y += it->speed * it->vec.y;
-            }
-            for (std::list<Bullet>::iterator it = enemyBullets.begin(); it != enemyBullets.end(); ++it) {
-                it->x += it->speed * it->vec.x;
-                it->y += it->speed * it->vec.y;
-            }
-
-        }
-
-        if(CheckCollisionRecs(Rectangle{100,100,150,75}, Rectangle{GetMouseX(),GetMouseY(), 10,10})){
-            GameStart = true;
-        }
-
-
-
-        // Draw
         BeginTextureMode(target);
-        ClearBackground(RAYWHITE);  // Clear render texture background color
-
         BeginMode2D(camera);
+        ClearBackground(BLACK);
 
-        if(GameStart){
-            for (std::list<Enemy>::iterator it = enemies.begin(); it != enemies.end(); ++it) {
-                DrawRectangle(it->domain.x, it->domain.y, it->domain.width, it->domain.height, RED);
-            }
-            for (std::list<Bullet>::iterator it = bullets.begin(); it != bullets.end(); ++it) {
-                DrawCircle(it->x,it->y,it->r,BROWN);
-            }
-            for (std::list<Bullet>::iterator it = enemyBullets.begin(); it != enemyBullets.end(); ++it) {
-                DrawCircle(it->x,it->y,it->r,YELLOW);
-            }
-            for (std::list<Wall>::iterator it = walls.begin(); it != walls.end(); ++it) {
-                DrawRectangle(it->domain.x,it->domain.y,it->domain.width, it->domain.height, GREEN);
-            }
-            DrawRectangle(C.domain.x,C.domain.y,C.domain.width,C.domain.height,BLUE);
-            DrawRectangle(50,50,10,10,BLACK);
+        if (gameState == MENU) {
+            // Main Menu
+            DrawText("Welcome to Squirrel vs Bess!", gameScreenWidth / 2 - MeasureText("Welcome to Squirrel vs Bess!", 20) / 2, 100, 20, WHITE);
+            DrawRectangle(gameScreenWidth / 2 - 50, 200, 100, 50, DARKGRAY);
+            DrawText("Start", gameScreenWidth / 2 - MeasureText("Start", 20) / 2, 215, 20, WHITE);
 
-            for(int i = 0; i < C.health; ++i) {
+            if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+                Vector2 mousePos = virtualMouse;
+                if (CheckCollisionPointRec(mousePos, (Rectangle){gameScreenWidth / 2 - 50, 200, 100, 50})) {
+                    ResetGame(C, enemies, bullets, enemyBullets);
+                    gameState = PLAYING;
+                }
+            }
+        } else if (gameState == PLAYING) {
+            ClearBackground(RAYWHITE);
+
+            // -------------------------------------
+            // Player Movement
+            // -------------------------------------
+            if (IsKeyDown(KEY_W)) C.domain.y = MAX(C.domain.y - 5, 0);
+            if (IsKeyDown(KEY_S)) C.domain.y = MIN(C.domain.y + 5, gameScreenHeight - C.domain.height);
+            if (IsKeyDown(KEY_A)) C.domain.x = MAX(C.domain.x - 5, 0);
+            if (IsKeyDown(KEY_D)) C.domain.x = MIN(C.domain.x + 5, gameScreenWidth - C.domain.width);
+
+            // camera.target.x = C.domain.x;
+            //camera.target.y = C.domain.y;
+
+            // -------------------------------------
+            // Player Shooting
+            // -------------------------------------
+            if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+                Vector2 mousePos = virtualMouse;
+                Vector2 direction = Vector2Normalize(Vector2Subtract(mousePos, (Vector2){C.domain.x + C.domain.width / 2, C.domain.y + C.domain.height / 2}));
+                bullets.push_back(Bullet(C.domain.x + C.domain.width / 2, C.domain.y + C.domain.height / 2, 10, direction, 5));
+            }
+
+            // -------------------------------------
+            // Update Game Logic
+            // -------------------------------------
+            // Update Bullets
+            for (auto it = bullets.begin(); it != bullets.end();) {
+                it->x += it->speed * it->vec.x;
+                it->y += it->speed * it->vec.y;
+
+                if (it->x < 0 || it->x > gameScreenWidth || it->y < 0 || it->y > gameScreenHeight) {
+                    it = bullets.erase(it);
+                } else {
+                    ++it;
+                }
+            }
+
+            // Update Enemies
+            for (auto &enemy : enemies) {
+                if (!enemy.traveling) {
+                    enemy.dest.x = GetRandomValue(0, gameScreenWidth - enemy.domain.width);
+                    enemy.dest.y = GetRandomValue(0, gameScreenHeight - enemy.domain.height);
+                    enemy.traveling = true;
+                }
+
+                float speed = 2.0f;
+                if (enemy.domain.x < enemy.dest.x) enemy.domain.x += speed;
+                else if (enemy.domain.x > enemy.dest.x) enemy.domain.x -= speed;
+
+                if (enemy.domain.y < enemy.dest.y) enemy.domain.y += speed;
+                else if (enemy.domain.y > enemy.dest.y) enemy.domain.y -= speed;
+
+                if (fabs(enemy.domain.x - enemy.dest.x) < speed && fabs(enemy.domain.y - enemy.dest.y) < speed) {
+                    enemy.traveling = false;
+                }
+
+                // Enemy Shooting
+                if (GetRandomValue(0, 200) < 1) {
+                    Vector2 direction = Vector2Subtract((Vector2){C.domain.x, C.domain.y}, (Vector2){enemy.domain.x, enemy.domain.y});
+                    direction = Vector2Normalize(direction);
+                    enemyBullets.push_back(Bullet(enemy.domain.x + enemy.domain.width / 2, enemy.domain.y + enemy.domain.height / 2, 10, direction, 3));
+                }
+            }
+
+            // Update Enemy Bullets
+            for (auto it = enemyBullets.begin(); it != enemyBullets.end();) {
+                it->x += it->speed * it->vec.x;
+                it->y += it->speed * it->vec.y;
+
+                if (CheckCollisionCircleRec((Vector2){it->x, it->y}, it->r, C.domain)) {
+                    C.health--;
+                    it = enemyBullets.erase(it);
+                } else if (it->x < 0 || it->x > gameScreenWidth || it->y < 0 || it->y > gameScreenHeight) {
+                    it = enemyBullets.erase(it);
+                } else {
+                    ++it;
+                }
+            }
+
+            // Collision Detection
+            for (auto enemy = enemies.begin(); enemy != enemies.end();) {
+                bool enemyHit = false;
+                for (auto bullet = bullets.begin(); bullet != bullets.end();) {
+                    if (CheckCollisionCircleRec((Vector2){bullet->x, bullet->y}, bullet->r, enemy->domain)) {
+                        bullet = bullets.erase(bullet);
+                        enemyHit = true;
+                        break;
+                    } else {
+                        ++bullet;
+                    }
+                }
+
+                if (enemyHit) {
+                    enemy = enemies.erase(enemy);
+                    playerScore += 10;
+                } else {
+                    ++enemy;
+                }
+            }
+
+            // Check Win Condition
+            if (enemies.empty()) {
+                gameState = WIN;
+            }
+
+            // Draw Game Elements
+            for (auto &enemy : enemies) {
+                DrawRectangle(enemy.domain.x, enemy.domain.y, enemy.domain.width, enemy.domain.height, RED);
+            }
+            for (auto &bullet : bullets) {
+                DrawCircle(bullet.x, bullet.y, bullet.r, BROWN);
+            }
+            for (auto &bullet : enemyBullets) {
+                DrawCircle(bullet.x, bullet.y, bullet.r, YELLOW);
+            }
+            DrawRectangle(C.domain.x, C.domain.y, C.domain.width, C.domain.height, BLUE);
+
+            // Draw Health and Score
+            for (int i = 0; i < C.health; ++i) {
                 DrawCircle(15 + i * 25, 15, 10, RED);
             }
+            DrawText(TextFormat("Score: %d", playerScore), 10, 40, 20, BLACK);
+
+            if (C.health <= 0) {
+                gameState = GAME_OVER;
+            }
+        } else if (gameState == PAUSED) {
+            // Pause Screen
+            ClearBackground(RAYWHITE);
+            DrawText("PAUSED", gameScreenWidth / 2 - MeasureText("PAUSED", 40) / 2, 100, 40, YELLOW);
+
+            DrawRectangle(gameScreenWidth / 2 - 60, 200, 120, 50, DARKGRAY);
+            DrawText("Resume", gameScreenWidth / 2 - MeasureText("Resume", 20) / 2, 215, 20, WHITE);
+
+            DrawRectangle(gameScreenWidth / 2 - 60, 300, 120, 50, DARKGRAY);
+            DrawText("Main Menu", gameScreenWidth / 2 - MeasureText("Main Menu", 20) / 2, 315, 20, WHITE);
+
+            if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+                Vector2 mousePos = virtualMouse;
+                if (CheckCollisionPointRec(mousePos, (Rectangle){gameScreenWidth / 2 - 60, 200, 120, 50})) {
+                    gameState = PLAYING;
+                } else if (CheckCollisionPointRec(mousePos, (Rectangle){gameScreenWidth / 2 - 60, 300, 120, 50})) {
+                    gameState = MENU;
+                }
+            }
+        } else if (gameState == GAME_OVER) {
+            ClearBackground(BLACK);
+            DrawText("GAME OVER", gameScreenWidth / 2 - MeasureText("GAME OVER", 40) / 2, 100, 40, RED);
+            DrawText(TextFormat("Your Score: %d", playerScore), gameScreenWidth / 2 - MeasureText(TextFormat("Your Score: %d", playerScore), 20) / 2, 160, 20, WHITE);
+
+            DrawRectangle(gameScreenWidth / 2 - 60, 240, 120, 50, DARKGRAY);
+            DrawText("Restart", gameScreenWidth / 2 - MeasureText("Restart", 20) / 2, 255, 20, WHITE);
+
+            DrawRectangle(gameScreenWidth / 2 - 60, 310, 120, 50, DARKGRAY);
+            DrawText("Exit", gameScreenWidth / 2 - MeasureText("Exit", 20) / 2, 325, 20, WHITE);
+
+            if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+                Vector2 mousePos = virtualMouse;
+                if (CheckCollisionPointRec(mousePos, (Rectangle){gameScreenWidth / 2 - 60, 240, 120, 50})) {
+                    ResetGame(C, enemies, bullets, enemyBullets);
+                    gameState = PLAYING;
+                } else if (CheckCollisionPointRec(mousePos, (Rectangle){gameScreenWidth / 2 - 60, 310, 120, 50})) {
+                    break;
+                }
+            }
+        } else if (gameState == WIN) {
+            ClearBackground(BLACK);
+            DrawText("CONGRATULATIONS!", gameScreenWidth / 2 - MeasureText("CONGRATULATIONS!", 40) / 2, 100, 40, GREEN);
+            DrawText(TextFormat("Your Score: %d", playerScore), gameScreenWidth / 2 - MeasureText(TextFormat("Your Score: %d", playerScore), 20) / 2, 160, 20, WHITE);
+
+            DrawRectangle(gameScreenWidth / 2 - 60, 240, 120, 50, DARKGRAY);
+            DrawText("Restart", gameScreenWidth / 2 - MeasureText("Restart", 20) / 2, 255, 20, WHITE);
+
+            DrawRectangle(gameScreenWidth / 2 - 60, 310, 120, 50, DARKGRAY);
+            DrawText("Exit", gameScreenWidth / 2 - MeasureText("Exit", 20) / 2, 325, 20, WHITE);
+
+            if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+                Vector2 mousePos = virtualMouse;
+                if (CheckCollisionPointRec(mousePos, (Rectangle){gameScreenWidth / 2 - 60, 240, 120, 50})) {
+                    ResetGame(C, enemies, bullets, enemyBullets);
+                    gameState = PLAYING;
+                } else if (CheckCollisionPointRec(mousePos, (Rectangle){gameScreenWidth / 2 - 60, 310, 120, 50})) {
+                    break;
+                }
+            }
         }
-
-        if(!GameStart){
-            DrawRectangle(100,100,150,75,RED);
-        }
-
-
 
         EndMode2D();
 
@@ -246,6 +327,8 @@ int main(void)
 
         EndDrawing();
     }
+
+
 
     UnloadRenderTexture(target);
     CloseWindow();
